@@ -46,6 +46,9 @@ logging.basicConfig(
     datefmt="%H:%M:%S",
 )
 log = logging.getLogger("golden-flow")
+# Keep httpx's own request logging quiet so the API key never lands in the logs.
+logging.getLogger("httpx").setLevel(logging.WARNING)
+logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 
 class CityNotFoundError(Exception):
