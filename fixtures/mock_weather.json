@@ -1,0 +1,6 @@
+{
+  "New York": { "main": "Rain", "description": "heavy intensity rain", "temp_c": 12.4 },
+  "Mumbai": { "main": "Clouds", "description": "broken clouds", "temp_c": 30.1 },
+  "London": { "main": "Snow", "description": "light snow", "temp_c": -1.2 },
+  "Paris": { "main": "Clear", "description": "clear sky", "temp_c": 18.0 }
+}
