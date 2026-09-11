@@ -31,21 +31,23 @@ cp .env.example .env
 ## Run
 
 ```bash
-python weather_delay.py                       # live API -> updated_orders.json
-python weather_delay.py --output orders.json   # update the input file in place
-python weather_delay.py --mock                 # offline deterministic demo, no key
+python weather_delay.py                                # live API, updates orders.json in place
+python weather_delay.py --output updated_orders.json   # write elsewhere, keep orders.json untouched
+python weather_delay.py --mock --output orders.mock.result.json   # offline deterministic demo
 ```
 
-`orders.json` is never modified by a default run. To reset it after an in-place
-run: `git checkout orders.json`.
+The brief asks for "the updated `orders.json`", so the default **writes `orders.json`
+in place**. To reset it to the pristine assignment data:
+`cp orders.seed.json orders.json`.
 
 ## Order files
 
 | File | Role |
 | --- | --- |
-| `orders.json` | the exact assignment input - 4 orders, all `Pending`. Never written to by a default run. |
-| `updated_orders.json` | the deliverable output, from a **live** `python weather_delay.py` run. Which orders are `Delayed` depends on the real weather at run time; the committed copy was captured with Mumbai actually raining. Re-run before submitting for a fresh capture. |
-| `orders.mock.result.json` | a `python weather_delay.py --mock` run against `fixtures/mock_weather.json` (New York = Rain, London = Snow). Deterministic, weather-independent proof of the `Rain/Snow/Extreme -> Delayed` branch and the apology function. |
+| `orders.json` | **both** the exact assignment input and, after a run, the required deliverable - "the updated `orders.json` (showing which orders were marked as Delayed)". Which orders are `Delayed` in the committed copy depends on the real weather at the last live run; re-run before submitting for a fresh capture. |
+| `orders.seed.json` | pristine backup of the original 4 `Pending` orders, for resetting `orders.json`. |
+| `orders.live.json` | a preserved snapshot of a live run, kept alongside `orders.json` in case the latter gets overwritten by a later `--mock` or test run. |
+| `orders.mock.result.json` | a `python weather_delay.py --mock` run against `fixtures/mock_weather.json` (New York = Rain, London = Snow). Deterministic, weather-independent proof of the `Rain/Snow/Extreme -> Delayed` branch and the apology function, for whenever the live weather doesn't cooperate. |
 
 ## Example output (`--mock`)
 
@@ -95,9 +97,10 @@ weather_delay.py          main async script
 apology.py                Weather-Aware Apology function
 tests/                     test_logic.py, test_concurrency.py
 pytest.ini                 pythonpath so tests import weather_delay
-orders.json                assignment input (4 Pending orders)
-updated_orders.json        deliverable output from a live run
-orders.mock.result.json    deterministic --mock run (weather-independent Delayed proof)
+orders.json                 assignment input AND the deliverable (updated in place by default)
+orders.seed.json            pristine backup of the 4 Pending orders
+orders.live.json            a preserved live-run snapshot
+orders.mock.result.json     deterministic --mock run (weather-independent Delayed proof)
 fixtures/mock_weather.json  canned weather used by --mock
 .env.example               template for the API key
 AI_LOG.md                  prompts used to build the parallel + error-handling logic

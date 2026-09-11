@@ -15,9 +15,9 @@ The API key is read from a .env file (OPENWEATHER_API_KEY) - never hardcoded.
 
 Usage
 -----
-    python weather_delay.py                        # real API  -> updated_orders.json
-    python weather_delay.py --output orders.json   # update the input file in place
-    python weather_delay.py --mock                 # deterministic offline demo, no key
+    python weather_delay.py                               # real API, updates orders.json in place
+    python weather_delay.py --output updated_orders.json  # write elsewhere, keep orders.json untouched
+    python weather_delay.py --mock                        # deterministic offline demo, no key
 """
 
 from __future__ import annotations
@@ -261,9 +261,10 @@ def main() -> None:
     )
     parser.add_argument(
         "--output",
-        default=str(_HERE / "updated_orders.json"),
-        help="where to write the updated orders (default: updated_orders.json next "
-        "to this script; pass --output orders.json to update the input in place)",
+        default=str(_HERE / "orders.json"),
+        help="where to write the updated orders (default: orders.json, updated in "
+        "place - matches the brief's 'the updated orders.json'). Pass e.g. "
+        "--output updated_orders.json to write elsewhere and keep the input untouched.",
     )
     parser.add_argument(
         "--mock",

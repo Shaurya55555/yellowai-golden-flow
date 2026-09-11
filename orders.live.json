@@ -5,25 +5,23 @@
     "city": "New York",
     "status": "Processing",
     "weather": "Clouds",
-    "weather_description": "few clouds"
+    "weather_description": "overcast clouds"
   },
   {
     "order_id": "1002",
     "customer": "Bob Jones",
     "city": "Mumbai",
-    "status": "Delayed",
-    "weather": "Rain",
-    "weather_description": "light rain",
-    "apology": "Hi Bob, your order to Mumbai is delayed due to light rain. We appreciate your patience!"
+    "status": "Processing",
+    "weather": "Clouds",
+    "weather_description": "broken clouds"
   },
   {
     "order_id": "1003",
     "customer": "Charlie Green",
     "city": "London",
-    "status": "Delayed",
-    "weather": "Rain",
-    "weather_description": "light rain",
-    "apology": "Hi Charlie, your order to London is delayed due to light rain. We appreciate your patience!"
+    "status": "Processing",
+    "weather": "Clouds",
+    "weather_description": "scattered clouds"
   },
   {
     "order_id": "1004",
