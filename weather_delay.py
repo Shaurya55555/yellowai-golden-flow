@@ -15,9 +15,9 @@ The API key is read from a .env file (OPENWEATHER_API_KEY) - never hardcoded.
 
 Usage
 -----
-    python weather_delay.py                 # real API, updates orders.json in place
-    python weather_delay.py --output out.json
-    python weather_delay.py --mock          # deterministic offline demo, no key needed
+    python weather_delay.py                        # real API  -> updated_orders.json
+    python weather_delay.py --output orders.json   # update the input file in place
+    python weather_delay.py --mock                 # deterministic offline demo, no key
 """
 
 from __future__ import annotations
@@ -39,6 +39,11 @@ OWM_URL = "https://api.openweathermap.org/data/2.5/weather"
 
 # Per the assignment spec, only these "main" values trigger a delay.
 DELAY_CONDITIONS = {"Rain", "Snow", "Extreme"}
+
+
+def is_delivery_delay(weather_main: str | None) -> bool:
+    """The Golden Flow rule: only these OpenWeatherMap 'main' values delay an order."""
+    return weather_main in DELAY_CONDITIONS
 
 logging.basicConfig(
     level=logging.INFO,
@@ -81,8 +86,11 @@ async def fetch_weather(client: httpx.AsyncClient, city: str, api_key: str) -> d
     return result
 
 
+_FIXTURES_PATH = Path(__file__).resolve().parent / "fixtures" / "mock_weather.json"
+
+
 def _load_mock_fixtures() -> dict:
-    return json.loads(Path("fixtures/mock_weather.json").read_text(encoding="utf-8"))
+    return json.loads(_FIXTURES_PATH.read_text(encoding="utf-8"))
 
 
 async def fetch_weather_mock(client: httpx.AsyncClient, city: str, api_key: str) -> dict:
@@ -127,6 +135,19 @@ async def process_order(client, order: dict, api_key: str, fetcher) -> dict:
         return {"order": order, "weather": None, "error": f"network error: {exc}"}
 
 
+async def gather_weather(orders: list[dict], api_key: str, fetcher) -> list[dict]:
+    """Fetch weather for every order CONCURRENTLY via a single asyncio.gather.
+
+    This is the exact aggregation path run() uses; test_concurrency.py exercises
+    this function directly. asyncio.gather schedules all coroutines at once and
+    preserves result order.
+    """
+    async with httpx.AsyncClient() as client:
+        return await asyncio.gather(
+            *(process_order(client, order, api_key, fetcher) for order in orders)
+        )
+
+
 # --------------------------------------------------------------------------- #
 # Golden Flow                                                                 #
 # --------------------------------------------------------------------------- #
@@ -145,7 +166,7 @@ def apply_golden_flow(results: list[dict]) -> list[dict]:
         if error is not None:
             order["status"] = "Pending"
             order["weather_error"] = error
-        elif weather["main"] in DELAY_CONDITIONS:
+        elif is_delivery_delay(weather["main"]):
             order["status"] = "Delayed"
             order["weather"] = weather["main"]
             order["weather_description"] = weather["description"]
@@ -179,11 +200,7 @@ async def run(orders_path: Path, output_path: Path, use_mock: bool) -> None:
     fetcher = fetch_weather_mock if use_mock else fetch_weather
     started = time.perf_counter()
 
-    async with httpx.AsyncClient() as client:
-        # asyncio.gather => all city lookups are in flight at the same time.
-        results = await asyncio.gather(
-            *(process_order(client, order, api_key, fetcher) for order in orders)
-        )
+    results = await gather_weather(orders, api_key, fetcher)
 
     elapsed = time.perf_counter() - started
     log.info("Fetched %d cities concurrently in %.2fs", len(orders), elapsed)
@@ -213,8 +230,9 @@ def main() -> None:
     parser.add_argument("--orders", default="orders.json", help="input orders JSON")
     parser.add_argument(
         "--output",
-        default=None,
-        help="where to write updated orders (default: overwrite the input file)",
+        default="updated_orders.json",
+        help="where to write the updated orders (default: updated_orders.json; "
+        "pass --output orders.json to update the input file in place)",
     )
     parser.add_argument(
         "--mock",
@@ -223,9 +241,7 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    orders_path = Path(args.orders)
-    output_path = Path(args.output) if args.output else orders_path
-    asyncio.run(run(orders_path, output_path, args.mock))
+    asyncio.run(run(Path(args.orders), Path(args.output), args.mock))
 
 
 if __name__ == "__main__":

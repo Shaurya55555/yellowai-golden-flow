@@ -1,0 +1,33 @@
+[
+  {
+    "order_id": "1001",
+    "customer": "Alice Smith",
+    "city": "New York",
+    "status": "Processing",
+    "weather": "Clear",
+    "weather_description": "clear sky"
+  },
+  {
+    "order_id": "1002",
+    "customer": "Bob Jones",
+    "city": "Mumbai",
+    "status": "Processing",
+    "weather": "Clouds",
+    "weather_description": "overcast clouds"
+  },
+  {
+    "order_id": "1003",
+    "customer": "Charlie Green",
+    "city": "London",
+    "status": "Processing",
+    "weather": "Clouds",
+    "weather_description": "overcast clouds"
+  },
+  {
+    "order_id": "1004",
+    "customer": "InvalidCity123",
+    "city": "InvalidCity123",
+    "status": "Pending",
+    "weather_error": "OpenWeatherMap does not recognise city 'InvalidCity123'"
+  }
+]

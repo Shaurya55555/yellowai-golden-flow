@@ -1,7 +1,7 @@
 """Unit tests for the pure logic (no network)."""
 
 from apology import generate_apology
-from weather_delay import DELAY_CONDITIONS, apply_golden_flow
+from weather_delay import DELAY_CONDITIONS, apply_golden_flow, is_delivery_delay
 
 
 def test_apology_uses_first_name_and_description():
@@ -20,6 +20,12 @@ def test_apology_falls_back_when_no_description():
 
 def test_delay_conditions_match_spec():
     assert DELAY_CONDITIONS == {"Rain", "Snow", "Extreme"}
+
+
+def test_is_delivery_delay_only_rain_snow_extreme():
+    assert all(is_delivery_delay(w) for w in ("Rain", "Snow", "Extreme"))
+    for w in ("Clear", "Clouds", "Drizzle", "Thunderstorm", "Mist", "Fog", None):
+        assert not is_delivery_delay(w)
 
 
 def _order(oid, city="X"):
