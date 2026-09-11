@@ -36,6 +36,8 @@ from dotenv import load_dotenv
 
 from apology import generate_apology
 
+_HERE = Path(__file__).resolve().parent
+
 OWM_URL = "https://api.openweathermap.org/data/2.5/weather"
 
 # Per the assignment spec, only these "main" values trigger a delay.
@@ -100,7 +102,7 @@ async def fetch_weather(client: httpx.AsyncClient, city: str, api_key: str) -> d
     return result
 
 
-_FIXTURES_PATH = Path(__file__).resolve().parent / "fixtures" / "mock_weather.json"
+_FIXTURES_PATH = _HERE / "fixtures" / "mock_weather.json"
 
 
 def _load_mock_fixtures() -> dict:
@@ -212,7 +214,14 @@ async def run(orders_path: Path, output_path: Path, use_mock: bool) -> None:
             "free OpenWeatherMap key, or run with --mock for an offline demo."
         )
 
-    orders = json.loads(orders_path.read_text(encoding="utf-8"))
+    try:
+        orders = json.loads(orders_path.read_text(encoding="utf-8"))
+    except FileNotFoundError:
+        raise SystemExit(f"Orders file not found: {orders_path}")
+    except json.JSONDecodeError as exc:
+        raise SystemExit(f"Orders file is not valid JSON ({orders_path}): {exc}")
+    if not isinstance(orders, list):
+        raise SystemExit(f"Orders file must be a JSON array of orders: {orders_path}")
     log.info("Loaded %d orders from %s", len(orders), orders_path)
 
     fetcher = fetch_weather_mock if use_mock else fetch_weather
@@ -245,12 +254,16 @@ async def run(orders_path: Path, output_path: Path, use_mock: bool) -> None:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Weather-aware delivery-delay checker")
-    parser.add_argument("--orders", default="orders.json", help="input orders JSON")
+    parser.add_argument(
+        "--orders",
+        default=str(_HERE / "orders.json"),
+        help="input orders JSON (default: orders.json next to this script)",
+    )
     parser.add_argument(
         "--output",
-        default="updated_orders.json",
-        help="where to write the updated orders (default: updated_orders.json; "
-        "pass --output orders.json to update the input file in place)",
+        default=str(_HERE / "updated_orders.json"),
+        help="where to write the updated orders (default: updated_orders.json next "
+        "to this script; pass --output orders.json to update the input in place)",
     )
     parser.add_argument(
         "--mock",

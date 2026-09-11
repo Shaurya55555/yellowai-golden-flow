@@ -4,8 +4,8 @@
     "customer": "Alice Smith",
     "city": "New York",
     "status": "Processing",
-    "weather": "Clear",
-    "weather_description": "clear sky"
+    "weather": "Clouds",
+    "weather_description": "few clouds"
   },
   {
     "order_id": "1002",
@@ -20,9 +20,10 @@
     "order_id": "1003",
     "customer": "Charlie Green",
     "city": "London",
-    "status": "Processing",
-    "weather": "Clouds",
-    "weather_description": "overcast clouds"
+    "status": "Delayed",
+    "weather": "Rain",
+    "weather_description": "light rain",
+    "apology": "Hi Charlie, your order to London is delayed due to light rain. We appreciate your patience!"
   },
   {
     "order_id": "1004",

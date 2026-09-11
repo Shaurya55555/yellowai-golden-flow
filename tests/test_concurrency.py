@@ -1,10 +1,10 @@
 """Proves the weather fetches run concurrently, through the real gather path.
 
-The point is concurrent-vs-sequential behaviour, not benchmarking. With N fake
-fetchers each sleeping FAKE_DELAY, a sequential run takes N * FAKE_DELAY; a
-concurrent one takes ~FAKE_DELAY plus event-loop / client overhead. The
-threshold sits at half the sequential time, which no amount of machine jitter
-turns a genuinely sequential run into.
+The point is concurrent-vs-sequential behaviour, not benchmarking. With 8 fake
+fetchers each sleeping 0.6s, a sequential run takes 4.8s; a concurrent one takes
+~0.6s plus event-loop / httpx client overhead (well under a second on a normal
+machine). The threshold sits at half the sequential time - a genuinely
+sequential run can never come in under that no matter the machine jitter.
 """
 
 import asyncio
@@ -12,8 +12,8 @@ import time
 
 from weather_delay import gather_weather
 
-FAKE_DELAY = 0.5
-N = 6
+FAKE_DELAY = 0.6
+N = 8
 
 
 async def _slow_fetcher(client, city, api_key):
@@ -31,9 +31,9 @@ def test_orders_are_fetched_concurrently():
     results = asyncio.run(gather_weather(orders, "dummy-key", _slow_fetcher))
     elapsed = time.perf_counter() - start
 
-    sequential = N * FAKE_DELAY  # 3.0s
+    sequential = N * FAKE_DELAY  # 4.8s
     assert elapsed < sequential * 0.5, (
-        f"took {elapsed:.2f}s vs sequential {sequential:.2f}s - not concurrent"
+        f"took {elapsed:.2f}s vs {sequential:.2f}s sequential - not concurrent"
     )
 
     # gather preserves order and returns one result per order

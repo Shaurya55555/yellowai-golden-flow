@@ -85,8 +85,8 @@ pytest -q          # 7 passed
   via `is_delivery_delay`, and the delay / skip / idempotency behaviour of
   `apply_golden_flow()`. No network.
 - `tests/test_concurrency.py` - runs `gather_weather` (the real aggregation path)
-  with 6 fake fetchers each sleeping 0.5s and asserts the batch finishes in
-  under half the 3.0s a sequential run would take.
+  with 8 fake fetchers each sleeping 0.6s and asserts the batch finishes in
+  under half the 4.8s a sequential run would take.
 
 ## Files
 
