@@ -4,8 +4,8 @@
     "customer": "Alice Smith",
     "city": "New York",
     "status": "Processing",
-    "weather": "Clouds",
-    "weather_description": "broken clouds"
+    "weather": "Clear",
+    "weather_description": "clear sky"
   },
   {
     "order_id": "1002",
@@ -21,7 +21,7 @@
     "city": "London",
     "status": "Processing",
     "weather": "Clouds",
-    "weather_description": "scattered clouds"
+    "weather_description": "broken clouds"
   },
   {
     "order_id": "1004",
