@@ -44,8 +44,8 @@ run: `git checkout orders.json`.
 | File | Role |
 | --- | --- |
 | `orders.json` | the exact assignment input - 4 orders, all `Pending`. Never written to by a default run. |
-| `updated_orders.json` | script output. The committed copy is from `python weather_delay.py --mock` (deterministic fixture weather: New York = Rain, London = Snow), so it shows the `Delayed` branch. Re-run `python weather_delay.py` to regenerate it from the live API. |
-| `orders.live.json` | a real OpenWeatherMap run - proves the live API integration and the `InvalidCity123` handling. May show every valid city as `Processing` when the real weather is clear. |
+| `updated_orders.json` | the deliverable output, from a **live** `python weather_delay.py` run. Which orders are `Delayed` depends on the real weather at run time; the committed copy was captured with Mumbai actually raining. Re-run before submitting for a fresh capture. |
+| `orders.mock.result.json` | a `python weather_delay.py --mock` run against `fixtures/mock_weather.json` (New York = Rain, London = Snow). Deterministic, weather-independent proof of the `Rain/Snow/Extreme -> Delayed` branch and the apology function. |
 
 ## Example output (`--mock`)
 
@@ -85,8 +85,8 @@ pytest -q          # 7 passed
   via `is_delivery_delay`, and the delay / skip / idempotency behaviour of
   `apply_golden_flow()`. No network.
 - `tests/test_concurrency.py` - runs `gather_weather` (the real aggregation path)
-  with 4 fake fetchers each sleeping 0.3s and asserts the batch finishes in
-  well under the ~1.2s a sequential run would take.
+  with 6 fake fetchers each sleeping 0.5s and asserts the batch finishes in
+  under half the 3.0s a sequential run would take.
 
 ## Files
 
@@ -96,8 +96,8 @@ apology.py                Weather-Aware Apology function
 tests/                     test_logic.py, test_concurrency.py
 pytest.ini                 pythonpath so tests import weather_delay
 orders.json                assignment input (4 Pending orders)
-updated_orders.json        script output (committed copy is the --mock run)
-orders.live.json           a real OpenWeatherMap run
+updated_orders.json        deliverable output from a live run
+orders.mock.result.json    deterministic --mock run (weather-independent Delayed proof)
 fixtures/mock_weather.json  canned weather used by --mock
 .env.example               template for the API key
 AI_LOG.md                  prompts used to build the parallel + error-handling logic

@@ -28,6 +28,7 @@ import json
 import logging
 import os
 import time
+from dataclasses import dataclass
 from pathlib import Path
 
 import httpx
@@ -45,6 +46,7 @@ def is_delivery_delay(weather_main: str | None) -> bool:
     """The Golden Flow rule: only these OpenWeatherMap 'main' values delay an order."""
     return weather_main in DELAY_CONDITIONS
 
+
 logging.basicConfig(
     level=logging.INFO,
     format="%(asctime)s  %(levelname)-7s  %(message)s",
@@ -58,6 +60,18 @@ logging.getLogger("httpcore").setLevel(logging.WARNING)
 
 class CityNotFoundError(Exception):
     """Raised when OpenWeatherMap does not recognise a city (HTTP 404)."""
+
+
+@dataclass
+class WeatherResult:
+    """Outcome of resolving one order's weather. Exactly one of ok / error holds."""
+
+    order: dict
+    ok: bool
+    main: str | None = None
+    description: str | None = None
+    temp_c: float | None = None
+    error: str | None = None
 
 
 # --------------------------------------------------------------------------- #
@@ -114,28 +128,34 @@ async def fetch_weather_mock(client: httpx.AsyncClient, city: str, api_key: str)
 # --------------------------------------------------------------------------- #
 # Per-order processing                                                        #
 # --------------------------------------------------------------------------- #
-async def process_order(client, order: dict, api_key: str, fetcher) -> dict:
-    """Resolve weather for a single order. Never raises - errors are captured."""
+async def process_order(client, order: dict, api_key: str, fetcher) -> WeatherResult:
+    """Resolve weather for a single order. Never raises - failures become a result."""
     city = order.get("city", "")
     try:
-        weather = await fetcher(client, city, api_key)
-        return {"order": order, "weather": weather, "error": None}
+        w = await fetcher(client, city, api_key)
+        return WeatherResult(
+            order=order,
+            ok=True,
+            main=w["main"],
+            description=w.get("description", ""),
+            temp_c=w.get("temp_c"),
+        )
     except CityNotFoundError as exc:
         log.warning("SKIP  order %s: %s", order.get("order_id"), exc)
-        return {"order": order, "weather": None, "error": str(exc)}
+        return WeatherResult(order=order, ok=False, error=str(exc))
     except httpx.HTTPStatusError as exc:
         log.warning(
             "SKIP  order %s: HTTP %s from weather API",
             order.get("order_id"),
             exc.response.status_code,
         )
-        return {"order": order, "weather": None, "error": f"HTTP {exc.response.status_code}"}
+        return WeatherResult(order=order, ok=False, error=f"HTTP {exc.response.status_code}")
     except (httpx.RequestError, asyncio.TimeoutError) as exc:
         log.warning("SKIP  order %s: network error: %s", order.get("order_id"), exc)
-        return {"order": order, "weather": None, "error": f"network error: {exc}"}
+        return WeatherResult(order=order, ok=False, error=f"network error: {exc}")
 
 
-async def gather_weather(orders: list[dict], api_key: str, fetcher) -> list[dict]:
+async def gather_weather(orders: list[dict], api_key: str, fetcher) -> list[WeatherResult]:
     """Fetch weather for every order CONCURRENTLY via a single asyncio.gather.
 
     This is the exact aggregation path run() uses; test_concurrency.py exercises
@@ -151,35 +171,33 @@ async def gather_weather(orders: list[dict], api_key: str, fetcher) -> list[dict
 # --------------------------------------------------------------------------- #
 # Golden Flow                                                                 #
 # --------------------------------------------------------------------------- #
-def apply_golden_flow(results: list[dict]) -> list[dict]:
-    """Mutate orders in place based on their resolved weather. Returns orders."""
+def apply_golden_flow(results: list[WeatherResult]) -> list[dict]:
+    """Mutate the order dicts based on their resolved weather. Returns them."""
     orders: list[dict] = []
-    for item in results:
-        order = item["order"]
-        weather = item["weather"]
-        error = item["error"]
+    for res in results:
+        order = res.order
 
         # Drop any fields from a previous run so re-runs are idempotent.
         for stale in ("weather", "weather_description", "apology", "weather_error"):
             order.pop(stale, None)
 
-        if error is not None:
+        if not res.ok:
             order["status"] = "Pending"
-            order["weather_error"] = error
-        elif is_delivery_delay(weather["main"]):
+            order["weather_error"] = res.error
+        elif is_delivery_delay(res.main):
             order["status"] = "Delayed"
-            order["weather"] = weather["main"]
-            order["weather_description"] = weather["description"]
+            order["weather"] = res.main
+            order["weather_description"] = res.description
             order["apology"] = generate_apology(
                 order.get("customer", ""),
                 order.get("city", ""),
-                weather["main"],
-                weather["description"],
+                res.main,
+                res.description,
             )
         else:
             order["status"] = "Processing"
-            order["weather"] = weather["main"]
-            order["weather_description"] = weather["description"]
+            order["weather"] = res.main
+            order["weather_description"] = res.description
 
         orders.append(order)
     return orders

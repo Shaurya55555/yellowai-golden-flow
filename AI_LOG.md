@@ -53,4 +53,12 @@ writes the output file.
 > (Rain -> 'heavy rain', Snow -> 'snowfall', Extreme -> 'extreme weather
 > conditions') otherwise. No network calls, so it stays unit-testable."
 
-Result: `apology.py` -> `generate_apology()`, covered by `test_logic.py`.
+Result: `apology.py` -> `generate_apology()`, covered by `tests/test_logic.py`.
+
+**Interpretation note.** The brief says *"Use an AI tool to write a
+'Weather-Aware Apology' function."* AI (the prompts above) was used **during
+development** to design and refine that function. The **runtime implementation
+is deterministic** - no network call, no API key, no quota - so the required
+message behaviour is fully reproducible and unit-testable offline. This also
+keeps the pipeline's only hard dependency the weather API, as the brief
+intends.

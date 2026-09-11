@@ -1,8 +1,10 @@
 """Proves the weather fetches run concurrently, through the real gather path.
 
-The point is concurrent-vs-sequential behaviour, not benchmarking: with 4 fake
-fetchers each sleeping 0.3s, a sequential run would take ~1.2s and a concurrent
-one ~0.3s, so the threshold sits comfortably between the two.
+The point is concurrent-vs-sequential behaviour, not benchmarking. With N fake
+fetchers each sleeping FAKE_DELAY, a sequential run takes N * FAKE_DELAY; a
+concurrent one takes ~FAKE_DELAY plus event-loop / client overhead. The
+threshold sits at half the sequential time, which no amount of machine jitter
+turns a genuinely sequential run into.
 """
 
 import asyncio
@@ -10,8 +12,8 @@ import time
 
 from weather_delay import gather_weather
 
-FAKE_DELAY = 0.3
-N = 4
+FAKE_DELAY = 0.5
+N = 6
 
 
 async def _slow_fetcher(client, city, api_key):
@@ -29,10 +31,12 @@ def test_orders_are_fetched_concurrently():
     results = asyncio.run(gather_weather(orders, "dummy-key", _slow_fetcher))
     elapsed = time.perf_counter() - start
 
-    # sequential would be N * FAKE_DELAY = 1.2s; concurrent is ~FAKE_DELAY
-    assert elapsed < 0.8, f"took {elapsed:.2f}s - looks sequential, not concurrent"
+    sequential = N * FAKE_DELAY  # 3.0s
+    assert elapsed < sequential * 0.5, (
+        f"took {elapsed:.2f}s vs sequential {sequential:.2f}s - not concurrent"
+    )
 
     # gather preserves order and returns one result per order
     assert len(results) == N
-    assert [r["order"]["order_id"] for r in results] == [o["order_id"] for o in orders]
-    assert all(r["error"] is None for r in results)
+    assert [r.order["order_id"] for r in results] == [o["order_id"] for o in orders]
+    assert all(r.ok and r.error is None for r in results)

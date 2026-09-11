@@ -1,7 +1,12 @@
 """Unit tests for the pure logic (no network)."""
 
 from apology import generate_apology
-from weather_delay import DELAY_CONDITIONS, apply_golden_flow, is_delivery_delay
+from weather_delay import (
+    DELAY_CONDITIONS,
+    WeatherResult,
+    apply_golden_flow,
+    is_delivery_delay,
+)
 
 
 def test_apology_uses_first_name_and_description():
@@ -34,9 +39,9 @@ def _order(oid, city="X"):
 
 def test_golden_flow_marks_rain_as_delayed():
     results = [
-        {"order": _order("1"), "weather": {"main": "Rain", "description": "light rain"}, "error": None},
-        {"order": _order("2"), "weather": {"main": "Clear", "description": "clear sky"}, "error": None},
-        {"order": _order("3"), "weather": None, "error": "unknown city 'Nowhere'"},
+        WeatherResult(_order("1"), ok=True, main="Rain", description="light rain"),
+        WeatherResult(_order("2"), ok=True, main="Clear", description="clear sky"),
+        WeatherResult(_order("3"), ok=False, error="unknown city 'Nowhere'"),
     ]
     out = apply_golden_flow(results)
     assert out[0]["status"] == "Delayed"
@@ -47,13 +52,12 @@ def test_golden_flow_marks_rain_as_delayed():
 
 
 def test_golden_flow_is_idempotent():
-    results = [
-        {"order": _order("1"), "weather": {"main": "Snow", "description": "light snow"}, "error": None},
-    ]
-    first = apply_golden_flow(results)[0]
-    # feed the already-mutated order back in
+    first = apply_golden_flow(
+        [WeatherResult(_order("1"), ok=True, main="Snow", description="light snow")]
+    )[0]
+    # feed the already-mutated order back in with fresh (clear) weather
     second = apply_golden_flow(
-        [{"order": first, "weather": {"main": "Clear", "description": "clear sky"}, "error": None}]
+        [WeatherResult(first, ok=True, main="Clear", description="clear sky")]
     )[0]
     assert second["status"] == "Processing"
     assert "apology" not in second
